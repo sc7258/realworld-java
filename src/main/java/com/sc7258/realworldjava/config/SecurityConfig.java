@@ -41,6 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/users", "/api/users/login").permitAll()
                         .requestMatchers("/api/user/**").authenticated()
+                        // Comments API
+                        .requestMatchers(HttpMethod.POST, "/api/articles/*/comments").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/articles/*/comments/*").authenticated()
                         .anyRequest().permitAll() // 다른 요청은 일단 허용 (프로필, 게시글 등)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

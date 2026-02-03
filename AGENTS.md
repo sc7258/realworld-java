@@ -133,3 +133,63 @@ public class ProfilesController implements ProfileApi {
     -   구현과 테스트가 모두 완료되면, 작업 폴더를 `works/issues/done`으로 이동시켜 작업을 마무합니다.
 
 이 프로세스를 통해 작업의 상태(`open`, `in-progress`, `done`)를 명확하게 추적하고, 성급한 구현을 방지합니다.
+
+---
+
+## 6. 통합 테스트 작성 특별 지침 (`@SpringBootTest`)
+
+`@SpringBootTest`를 사용하여 컨트롤러 통합 테스트를 작성할 때, 반복적인 오류를 피하고 안정적인 테스트를 구축하기 위해 다음 지침을 **반드시** 따릅니다.
+
+### 문제 상황: `DataIntegrityViolationException`과 `UsernameNotFoundException`
+테스트 실행 시, 특히 `@Transactional` 환경에서 다음과 같은 오류들이 빈번하게 발생할 수 있습니다.
+
+- **`DataIntegrityViolationException`**: DB의 `UNIQUE` 또는 `NOT NULL` 제약 조건을 위반할 때 발생합니다.
+    - **원인 1**: `@BeforeEach`에서 데이터를 수동으로 삭제(`deleteAll`)하고 생성하는 로직이 `@Transactional`의 롤백과 꼬여, 이전 테스트 데이터가 제대로 삭제되지 않은 상태에서 중복 데이터를 `save`하려 할 때 발생합니다.
+    - **원인 2**: `@CreatedDate` 같은 Auditing 필드가 `nullable=false`인데, 테스트 환경에서 Auditing 기능이 활성화되지 않아 `null` 값으로 저장하려 할 때 발생합니다.
+- **`UsernameNotFoundException`**: `@WithUserDetails` 사용 시, 테스트의 인증 컨텍스트가 생성되는 시점과 `@BeforeEach`의 데이터가 DB에 저장되는 시점이 맞지 않아 발생합니다.
+
+### 올바른 테스트 코드 패턴
+이러한 문제들을 해결하기 위한 모범 사례는 다음과 같습니다.
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional // (1) 테스트 후 자동 롤백을 위해 @Transactional을 사용합니다.
+class CommentsControllerTest {
+
+    // ... (Repositories, MockMvc, ObjectMapper 등 주입) ...
+
+    @BeforeEach
+    void setUp() {
+        // (2) 수동으로 DB를 삭제하는 코드를 절대 넣지 않습니다.
+        // @Transactional이 각 테스트 후 DB 상태를 자동으로 롤백해줍니다.
+        // commentRepository.deleteAllInBatch(); (X)
+        // articleRepository.deleteAllInBatch(); (X)
+        // userRepository.deleteAllInBatch();    (X)
+
+        // (3) 영속화된 객체를 반환받아 참조 무결성을 보장합니다.
+        // save() 대신 saveAndFlush()를 사용하여 DB에 즉시 반영하고, 그 반환값을 사용합니다.
+        User user1 = new User("user1@example.com", "user1", "password");
+        User savedUser1 = userRepository.saveAndFlush(user1);
+
+        Article article1 = new Article("slug-1", "Title 1", "Desc", "Body", savedUser1);
+        // (4) Auditing 필드 문제를 해결하기 위해 엔티티 생성자에서 시간을 직접 할당합니다.
+        // article1.setCreatedAt(Instant.now()); // 또는 생성자에서 처리
+        articleRepository.saveAndFlush(article1);
+    }
+
+    @Test
+    // (5) DB를 조회하는 @WithUserDetails 대신, @WithMockUser를 사용합니다.
+    @WithMockUser(username = "user1")
+    void some_authenticated_test() throws Exception {
+        // ... 테스트 로직 ...
+    }
+}
+```
+
+### 핵심 요약
+1.  **`@Transactional` 사용**: 클래스 레벨에 `@Transactional`을 붙여 테스트의 자동 롤백을 활성화합니다.
+2.  **수동 `deleteAll` 금지**: `@BeforeEach`에서 `deleteAll`이나 `deleteAllInBatch`를 호출하지 마세요. `@Transactional`이 모든 것을 처리합니다.
+3.  **`saveAndFlush()`와 반환값 사용**: 데이터를 저장할 때는 `saveAndFlush()`를 사용하여 즉시 DB에 반영하고, 반환된 영속 객체를 다음 객체의 외래 키로 사용하여 참조 무결성을 지키세요.
+4.  **Auditing 필드 수동 할당**: `@CreatedDate` 등이 `nullable=false`인 경우, 테스트 시에는 엔티티 생성자나 `setter`를 통해 `Instant.now()` 등으로 값을 직접 할당하여 제약 조건 위반을 피하세요.
+5.  **`@WithMockUser` 사용**: 인증이 필요한 테스트에는 DB 조회가 필요 없는 `@WithMockUser(username="...")`을 사용하여 타이밍 문제를 원천적으로 차단하세요.

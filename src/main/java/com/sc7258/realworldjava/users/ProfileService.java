@@ -25,7 +25,7 @@ public class ProfileService {
         User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
 
-        boolean following = (currentUser != null) && followRepository.existsByFollowerAndFollowed(currentUser, profileUser);
+        boolean following = isFollowing(currentUser, profileUser);
 
         return buildProfileResponse(profileUser, following);
     }
@@ -60,7 +60,12 @@ public class ProfileService {
         return buildProfileResponse(followedUser, false);
     }
 
-    private ProfileResponse buildProfileResponse(User profileUser, boolean following) {
+    @Transactional(readOnly = true)
+    public boolean isFollowing(User currentUser, User profileUser) {
+        return (currentUser != null) && followRepository.existsByFollowerAndFollowed(currentUser, profileUser);
+    }
+
+    public ProfileResponse buildProfileResponse(User profileUser, boolean following) {
         Profile profile = new Profile();
         profile.setUsername(profileUser.getUsername());
         profile.setBio(profileUser.getBio());
