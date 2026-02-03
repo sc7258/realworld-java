@@ -25,6 +25,10 @@
     - **최소 단위 검증**: 가장 간단한 방법으로 가설을 검증합니다. (예: `ls` 또는 `find` 명령으로 생성된 파일의 실제 존재 여부와 이름을 확인)
     - **점진적 수정**: 검증된 사실을 바탕으로 코드를 수정합니다.
 
+- **리팩토링 파급 효과 전파**: 클래스를 새로 생성하거나 다른 패키지로 이동할 때, 해당 변경 사항이 프로젝트 전체에 미치는 영향을 반드시 추적하고 전파해야 합니다.
+    - **`import` 문 확인**: 클래스를 생성/이동한 후에는, 해당 클래스를 사용하는 **모든 파일**(`src/main` 및 `src/test` 포함)의 `import` 문이 올바르게 수정되었는지 반드시 확인합니다.
+    - **오류의 첫 번째 원인**: `cannot find symbol` 컴파일 오류가 발생하면, 복잡한 원인을 추측하기 전에 가장 먼저 관련 클래스의 `import` 문이 누락되거나 잘못되지 않았는지부터 의심하고 확인합니다.
+
 ---
 
 ## 2. OpenAPI Generator 연동 특별 지침
@@ -47,7 +51,59 @@
 
 ---
 
-## 3. 온보딩 프로세스 (Onboarding Process)
+## 3. 컨트롤러 구현 특별 지침 (Controller Implementation Guidelines)
+
+### 문제 상황: API 인터페이스와 인증 정보의 충돌
+
+컨트롤러 메소드에서 `@AuthenticationPrincipal`을 사용하여 인증된 사용자 정보를 파라미터로 주입받고 싶을 때가 있습니다. 하지만, 컨트롤러가 구현하는 생성된 API 인터페이스(`...Api.java`)의 메소드 시그니처에는 이 파라미터가 존재하지 않아 컴파일 오류가 발생합니다.
+
+### 잘못된 해결책 (절대 사용 금지)
+
+1.  **인터페이스 구현(`implements`) 포기**: 컴파일 오류를 피하기 위해 `implements ProfileApi` 구문을 제거하는 것은, 이 프로젝트의 핵심인 **계약 우선 개발 원칙을 위배**하는 행위이므로 절대 해서는 안 됩니다.
+2.  **API 인터페이스 직접 수정**: `build/generated` 폴더의 생성된 코드를 직접 수정하는 것은, 빌드할 때마다 변경 사항이 사라지므로 의미가 없습니다.
+
+### 올바른 해결책: `SecurityContextHolder` 사용
+
+**컨트롤러는 반드시 생성된 API 인터페이스를 구현해야 합니다.** 메소드 시그니처는 인터페이스의 것을 그대로 따라야 합니다.
+
+인증된 사용자 정보가 필요할 경우, 파라미터로 주입받는 대신 **메소드 내부에서 `SecurityContextHolder`를 통해 직접 접근**해야 합니다.
+
+**올바른 코드 예시 (`ProfilesController.java`):**
+
+```java
+@RestController
+@RequestMapping("/api")
+public class ProfilesController implements ProfileApi {
+
+    // ... 생성자 주입 ...
+
+    @Override
+    public ResponseEntity<ProfileResponse> getProfileByUsername(String username) {
+        // 메소드 시그니처는 인터페이스와 동일하게 유지한다.
+        // @AuthenticationPrincipal을 사용하지 않는다.
+
+        // 필요한 인증 정보는 SecurityContextHolder를 통해 내부에서 직접 가져온다.
+        User currentUser = getCurrentUserFromSecurityContext();
+        
+        ProfileResponse profileResponse = profileService.getProfile(username, currentUser);
+        return ResponseEntity.ok(profileResponse);
+    }
+
+    private User getCurrentUserFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return null;
+        }
+        // ... 사용자 정보 조회 로직 ...
+    }
+}
+```
+
+> **결론**: API 인터페이스의 시그니처를 절대 변경하지 마십시오. 인증 정보가 필요하면, 메소드 내부에서 `SecurityContextHolder`를 통해 접근하십시오.
+
+---
+
+## 4. 온보딩 프로세스 (Onboarding Process)
 
 새로운 채팅 세션이 시작될 때, AI 에이전트는 프로젝트의 맥락을 파악하기 위해 다음 단계를 반드시 수행해야 합니다.
 
