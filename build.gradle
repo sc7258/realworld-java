@@ -60,8 +60,8 @@ openApiGenerate {
     generatorName = "spring"
     inputSpec = "$projectDir/openapi/openapi.yml"
     outputDir = "$buildDir/generated/openapi"
-    apiPackage = "com.sc7258.realworldjava.users.api"
-    modelPackage = "com.sc7258.realworldjava.users.model"
+    apiPackage = "com.sc7258.realworldjava.api"
+    modelPackage = "com.sc7258.realworldjava.model"
     configOptions = [
         interfaceOnly: "true",
         useSpringBoot3: "true",

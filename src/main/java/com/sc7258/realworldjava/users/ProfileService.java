@@ -1,9 +1,9 @@
 package com.sc7258.realworldjava.users;
 
+import com.sc7258.realworldjava.model.Profile;
+import com.sc7258.realworldjava.model.ProfileResponse;
 import com.sc7258.realworldjava.users.entity.Follow;
 import com.sc7258.realworldjava.users.entity.User;
-import com.sc7258.realworldjava.users.model.Profile;
-import com.sc7258.realworldjava.users.model.ProfileResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

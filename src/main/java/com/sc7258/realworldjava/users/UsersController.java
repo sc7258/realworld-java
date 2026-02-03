@@ -1,10 +1,10 @@
 package com.sc7258.realworldjava.users;
 
-import com.sc7258.realworldjava.users.api.UserAndAuthenticationApi;
-import com.sc7258.realworldjava.users.model.LoginUserRequest;
-import com.sc7258.realworldjava.users.model.NewUserRequest;
-import com.sc7258.realworldjava.users.model.UpdateUserRequest;
-import com.sc7258.realworldjava.users.model.UserResponse;
+import com.sc7258.realworldjava.api.UserAndAuthenticationApi;
+import com.sc7258.realworldjava.model.LoginUserRequest;
+import com.sc7258.realworldjava.model.NewUserRequest;
+import com.sc7258.realworldjava.model.UpdateUserRequest;
+import com.sc7258.realworldjava.model.UserResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -64,7 +64,7 @@ Realworld 프로젝트는 [Postman](https://www.postman.com/) 컬렉션과 [Newm
 1.  **JPA 엔티티와 API 모델의 분리**:
     -   **JPA 엔티티**: 데이터베이스 테이블과 매핑되는 클래스입니다. (예: `users/entity/User.java`)
         - API 모델과의 이름 충돌을 피하기 위해 `entity`와 같은 하위 패키지에 명시적으로 분리합니다.
-    -   **API 모델 (DTO)**: `openapi.yml`로부터 생성되며, 클라이언트와 데이터를 주고받는 데 사용됩니다. (예: `build/generated/.../users/model/User.java`)
+    -   **API 모델 (DTO)**: `openapi.yml`로부터 생성되며, 클라이언트와 데이터를 주고받는 데 사용됩니다. (예: `build/generated/.../model/User.java`)
 
 2.  **생성된 코드의 적극적인 활용**:
     -   `build.gradle`의 `openApiGenerate` 태스크는 API 인터페이스와 모델 클래스를 모두 생성합니다.
@@ -84,22 +84,23 @@ Realworld 프로젝트는 [Postman](https://www.postman.com/) 컬렉션과 [Newm
 src/main/java/com/sc7258/realworldjava
 ├── RealworldJavaApplication.java
 |
+├── api/
+│   ├ (UserAndAuthenticationApi.java)  // build/generated에 생성됨
+│   └ (ArticlesApi.java)               // build/generated에 생성됨
+├── model/
+│   ├ (NewUserRequest.java)            // build/generated에 생성됨
+│   ├ (UserResponse.java)              // build/generated에 생성됨
+│   └ (Article.java)                   // build/generated에 생성됨
+|
 ├── ... (config, exception, security)
 |
 └── users/
-    ├── api/
-    │   └ (UserAndAuthenticationApi.java)  // build/generated에 생성됨
-    ├── model/
-    │   ├ (NewUserRequest.java)            // build/generated에 생성됨
-    │   ├ (LoginUserRequest.java)          // build/generated에 생성됨
-    │   └ (UserResponse.java)              // build/generated에 생성됨
-    |
     ├── entity/
-    │   └── User.java                      // DB와 매핑되는 JPA 엔티티 (직접 구현)
+    │   └── User.java                  // DB와 매핑되는 JPA 엔티티 (직접 구현)
     |
-    ├── UserRepository.java                // 엔티티를 사용하는 리포지토리
-    ├── UserService.java                   // 비즈니스 로직 (엔티티 <-> 모델 변환)
-    └── UsersController.java               // 생성된 '...Api' 인터페이스를 구현
+    ├── UserRepository.java            // 엔티티를 사용하는 리포지토리
+    ├── UserService.java               // 비즈니스 로직 (엔티티 <-> 모델 변환)
+    └── UsersController.java           // 생성된 '...Api' 인터페이스를 구현
 ```
 
 ### 주요 기술 스택

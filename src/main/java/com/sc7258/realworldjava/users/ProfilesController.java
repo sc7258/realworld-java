@@ -1,8 +1,8 @@
 package com.sc7258.realworldjava.users;
 
-import com.sc7258.realworldjava.users.api.ProfileApi;
+import com.sc7258.realworldjava.api.ProfileApi;
+import com.sc7258.realworldjava.model.ProfileResponse;
 import com.sc7258.realworldjava.users.entity.User;
-import com.sc7258.realworldjava.users.model.ProfileResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

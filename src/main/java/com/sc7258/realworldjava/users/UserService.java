@@ -1,11 +1,11 @@
 package com.sc7258.realworldjava.users;
 
+import com.sc7258.realworldjava.model.LoginUser;
+import com.sc7258.realworldjava.model.NewUser;
+import com.sc7258.realworldjava.model.UpdateUser;
+import com.sc7258.realworldjava.model.UserResponse;
 import com.sc7258.realworldjava.security.JwtUtils;
 import com.sc7258.realworldjava.users.entity.User;
-import com.sc7258.realworldjava.users.model.LoginUser;
-import com.sc7258.realworldjava.users.model.NewUser;
-import com.sc7258.realworldjava.users.model.UpdateUser;
-import com.sc7258.realworldjava.users.model.UserResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -104,7 +104,7 @@ public class UserService {
 
     private UserResponse buildUserResponse(User user) {
         String token = jwtUtils.generateToken(user);
-        com.sc7258.realworldjava.users.model.User userModel = new com.sc7258.realworldjava.users.model.User();
+        com.sc7258.realworldjava.model.User userModel = new com.sc7258.realworldjava.model.User();
         userModel.setEmail(user.getEmail());
         userModel.setUsername(user.getUsername());
         userModel.setBio(user.getBio());

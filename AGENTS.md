@@ -110,3 +110,26 @@ public class ProfilesController implements ProfileApi {
 1.  **`README.md` 파일 정독**: 프로젝트의 개요, 목표, 아키텍처, OpenAPI 연동 전략을 파악합니다.
 2.  **`AGENTS.md` 파일 정독 (이 문서)**: AI 에이전트로서 따라야 할 구체적인 지침과 원칙을 숙지합니다.
 3.  **`build.gradle` 파일 검토**: `openApiGenerate` 설정을 포함한 프로젝트의 의존성과 빌드 로직을 확인합니다.
+
+---
+
+## 5. 작업 관리 프로세스 (Issue Management Process)
+
+이 프로젝트는 `works/issues` 디렉토리를 통해 작업을 관리합니다. 모든 작업은 다음의 명확한 절차를 따라야 합니다.
+
+1.  **이슈 생성 (Issue Creation)**:
+    -   사용자로부터 새로운 기능 구현이나 버그 수정 요청을 받으면, 먼저 `works/issues/open` 디렉토리에 해당 작업의 이름으로 새 폴더를 생성합니다. (예: `works/issues/open/04-comments`)
+    -   이 폴더 안에는 최소한 다음 세 개의 파일을 생성해야 합니다.
+        -   `README.md`: 작업의 목표와 개요를 기술합니다.
+        -   `requirements.md`: 구체적인 요구사항과 구현 항목을 상세히 정의합니다.
+        -   `test-scenarios.md`: 성공 및 실패 케이스를 포함한 테스트 시나리오를 정의합니다.
+    -   **주의**: 이 단계에서는 실제 코드 구현을 시작하지 않습니다.
+
+2.  **작업 시작 (Start Progress)**:
+    -   사용자가 "계속해줘" 또는 "작업을 시작해줘"와 같이 명시적으로 작업 시작을 지시하면, `open` 디렉토리에 있던 작업 폴더를 `works/issues/in-progress` 디렉토리로 이동시킵니다.
+    -   이동이 완료된 후, `in-progress` 폴더 내의 문서를 바탕으로 실제 코드 개발(예: `openapi.yml` 수정, 소스 코드 작성, 테스트 코드 작성)을 시작합니다.
+
+3.  **작업 완료 (Completion)**:
+    -   구현과 테스트가 모두 완료되면, 작업 폴더를 `works/issues/done`으로 이동시켜 작업을 마무합니다.
+
+이 프로세스를 통해 작업의 상태(`open`, `in-progress`, `done`)를 명확하게 추적하고, 성급한 구현을 방지합니다.
