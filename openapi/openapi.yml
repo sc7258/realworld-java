@@ -606,6 +606,7 @@ components:
       content:
         application/json:
           schema:
+            title: TagsResponse
             required:
               - tags
             type: object
@@ -619,6 +620,7 @@ components:
       content:
         application/json:
           schema:
+            title: SingleCommentResponse
             required:
               - comment
             type: object
@@ -630,6 +632,7 @@ components:
       content:
         application/json:
           schema:
+            title: MultipleCommentsResponse
             required:
               - comments
             type: object
@@ -643,6 +646,7 @@ components:
       content:
         application/json:
           schema:
+            title: SingleArticleResponse
             required:
               - article
             type: object
@@ -654,6 +658,7 @@ components:
       content:
         application/json:
           schema:
+            title: MultipleArticlesResponse
             required:
               - articles
               - articlesCount
@@ -703,6 +708,7 @@ components:
       content:
         application/json:
           schema:
+            title: ProfileResponse
             required:
               - profile
             type: object
@@ -714,6 +720,7 @@ components:
       content:
         application/json:
           schema:
+            title: UserResponse
             required:
               - user
             type: object
@@ -731,6 +738,7 @@ components:
       content:
         application/json:
           schema:
+            title: GenericError
             $ref: '#/components/schemas/GenericErrorModel'
   requestBodies:
     LoginUserRequest:
@@ -739,6 +747,7 @@ components:
       content:
         application/json:
           schema:
+            title: LoginUserRequest
             required:
               - user
             type: object
@@ -751,6 +760,7 @@ components:
       content:
         application/json:
           schema:
+            title: NewUserRequest
             required:
               - user
             type: object
@@ -763,6 +773,7 @@ components:
       content:
         application/json:
           schema:
+            title: UpdateUserRequest
             required:
               - user
             type: object
@@ -775,6 +786,7 @@ components:
       content:
         application/json:
           schema:
+            title: NewArticleRequest
             required:
               - article
             type: object
@@ -787,6 +799,7 @@ components:
       content:
         application/json:
           schema:
+            title: UpdateArticleRequest
             required:
               - article
             type: object
@@ -799,6 +812,7 @@ components:
       content:
         application/json:
           schema:
+            title: NewCommentRequest
             required:
               - comment
             type: object

@@ -51,71 +51,62 @@ realworld로 앱을 빌드하는 방법에 대한 자세한 내용은 [Realworld
 
 애플리케이션은 `http://localhost:8080`에서 시작됩니다.
 
-## 평가 방법
-
-이 구현이 Realworld 명세를 얼마나 잘 준수하는지는 다음 두 가지 방법으로 평가할 수 있습니다.
-
-### 1. API 테스트 (Postman/Newman)
-
-가장 중요한 평가 기준은 Realworld에서 제공하는 공식 API 테스트 스위트를 통과하는 것입니다. 이 테스트는 API의 모든 기능이 명세대로 정확히 동작하는지 검증합니다.
-
-프로젝트에 포함된 테스트 스크립트를 실행하여 모든 테스트가 통과하는지 확인해야 합니다.
-
-### 2. 프론트엔드 연동 테스트
-
-개발된 백엔드는 기존의 다양한 Realworld 프론트엔드 애플리케이션과 호환되어야 합니다.
-
-- **[Realworld 프론트엔드 목록](https://codebase.show/projects/realworld?category=frontend)**
-
-위 목록에서 원하는 프론트엔드 프로젝트를 선택하여 로컬에서 실행한 후, API 서버 주소를 로컬 백엔드(`http://localhost:8080/api`)로 지정합니다. 회원가입, 글 작성, 댓글, 팔로우 등 모든 기능이 정상적으로 동작하는지 확인해야 합니다.
-
 ## API 테스트
 
-Realworld 프로젝트는 [Postman](https://www.postman.com/) 컬렉션과 [Newman](https://github.com/postmanlabs/newman)을 사용하여 API 테스트를 제공합니다.
+Realworld 프로젝트는 [Postman](https://www.postman.com/) 컬렉션과 [Newman](https://github.com/postmanlabs/newman)을 사용하여 API 테스트를 제공합니다. 자세한 내용은 [API 테스트 가이드](./docs/api-testing.md)를 참고하세요.
 
-### 전제 조건
+## 프로젝트 구조 및 OpenAPI 연동 전략
 
-- [Node.js 및 npm](https://nodejs.org/ko/download/) 설치
-- Newman 설치:
-  ```bash
-  npm install -g newman
-  ```
+이 프로젝트는 **OpenAPI Generator를 활용한 계약 우선(Contract-First) 개발 방식**을 적극적으로 채택하고 있습니다. `openapi.yml` 명세가 모든 API의 단일 진실 공급원(Single Source of Truth) 역할을 합니다.
 
-### 테스트 실행
+### 아키텍처 핵심
 
-1.  Spring Boot 애플리케이션이 `http://localhost:8080`에서 실행 중인지 확인합니다.
-2.  프로젝트 루트 디렉터리에서 운영체제에 맞는 스크립트를 실행합니다:
+1.  **JPA 엔티티와 API 모델의 분리**:
+    -   **JPA 엔티티**: 데이터베이스 테이블과 매핑되는 클래스입니다. (예: `users/entity/User.java`)
+        - API 모델과의 이름 충돌을 피하기 위해 `entity`와 같은 하위 패키지에 명시적으로 분리합니다.
+    -   **API 모델 (DTO)**: `openapi.yml`로부터 생성되며, 클라이언트와 데이터를 주고받는 데 사용됩니다. (예: `build/generated/.../users/model/User.java`)
 
-    - **Linux/macOS:**
-      ```bash
-      # 실행 권한 부여 (최초 1회)
-      chmod +x scripts/run-api-tests.sh
-      # 테스트 실행
-      ./scripts/run-api-tests.sh
-      ```
-      다른 URL로 테스트하려면 `APIURL` 환경 변수를 설정합니다:
-      ```bash
-      APIURL=http://localhost:3000/api ./scripts/run-api-tests.sh
-      ```
+2.  **생성된 코드의 적극적인 활용**:
+    -   `build.gradle`의 `openApiGenerate` 태스크는 API 인터페이스와 모델 클래스를 모두 생성합니다.
+    -   **컨트롤러**는 생성된 **API 인터페이스**(`...Api.java`)를 `implements`하여 API 계약을 준수하도록 강제합니다.
+    -   **서비스와 컨트롤러**는 모두 생성된 **API 모델**(`...Request.java`, `...Response.java`, `User.java` 등)을 사용하여 타입 안정성을 보장합니다.
 
-    - **Windows:**
-      ```bash
-      # 테스트 실행
-      scripts\\run-api-tests.bat
-      ```
-      다른 URL로 테스트하려면 `APIURL` 환경 변수를 설정합니다:
-      ```bash
-      set APIURL=http://localhost:3000/api
-      scripts\\run-api-tests.bat
-      ```
+### `build.gradle`의 핵심 설정
 
-테스트 결과는 터미널에 표시되며, `newman-report.xml` 파일로도 생성됩니다.
+성공적인 연동을 위해 `openApiGenerate` 태스크에 다음과 같은 핵심 옵션이 설정되어 있습니다.
 
-## 프로젝트 구조
+-   `apiPackage`, `modelPackage`: 생성된 코드의 패키지를 프로젝트 구조에 맞게 지정하여 이름 충돌을 방지합니다.
+-   `interfaceOnly: "true"`: 컨트롤러의 실제 구현 로직을 생성하지 않고, API의 '계약'인 인터페이스만 생성하도록 합니다.
+
+### 최종 프로젝트 구조 예시
+
+```
+src/main/java/com/sc7258/realworldjava
+├── RealworldJavaApplication.java
+|
+├── ... (config, exception, security)
+|
+└── users/
+    ├── api/
+    │   └ (UserAndAuthenticationApi.java)  // build/generated에 생성됨
+    ├── model/
+    │   ├ (NewUserRequest.java)            // build/generated에 생성됨
+    │   ├ (LoginUserRequest.java)          // build/generated에 생성됨
+    │   └ (UserResponse.java)              // build/generated에 생성됨
+    |
+    ├── entity/
+    │   └── User.java                      // DB와 매핑되는 JPA 엔티티 (직접 구현)
+    |
+    ├── UserRepository.java                // 엔티티를 사용하는 리포지토리
+    ├── UserService.java                   // 비즈니스 로직 (엔티티 <-> 모델 변환)
+    └── UsersController.java               // 생성된 '...Api' 인터페이스를 구현
+```
+
+### 주요 기술 스택
 
 - **프레임워크**: [Spring Boot](https://spring.io/projects/spring-boot)
 - **데이터베이스**: H2(개발용) 및 PostgreSQL(프로덕션용)과 함께 [Spring Data JPA](https://spring.io/projects/spring-data-jpa)
-- **유효성 검사**: [Bean Validation](https://beanvalidation.org/)
+- **인증**: [Spring Security](https://spring.io/projects/spring-security) 및 [JWT](https://jwt.io/)
+- **유효성 검사**: [Bean Validation](https.://beanvalidation.org/)
 - **빌드 도구**: [Gradle](https://gradle.org/)
-
-이 프로젝트는 Spring Boot 애플리케이션의 표준 구조를 따릅니다.
+- **API 문서**: [Springdoc OpenAPI](https://springdoc.org/)
