@@ -1,0 +1,74 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.10'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.7.0'
+}
+
+group = 'com.sc7258'
+version = '0.0.1-SNAPSHOT'
+description = 'realworld-java'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$projectDir/openapi/openapi.yml"
+    outputDir = "$buildDir/generated/openapi"
+    apiPackage = "com.sc7258.realworld.api"
+    modelPackage = "com.sc7258.realworld.model"
+    configOptions = [
+        interfaceOnly: "true",
+        useSpringBoot3: "true",
+        useSpringdoc: "true",
+        serializableModel: "true",
+        useTags: "true"
+    ]
+}
+
+// 생성된 소스를 Java 소스 세트에 추가
+sourceSets {
+    main {
+        java {
+            srcDir "$buildDir/generated/openapi/src/main/java"
+        }
+    }
+}
+
+// 'compileJava' 태스크가 'openApiGenerate' 태스크에 의존하도록 설정
+tasks.named('compileJava') {
+    dependsOn 'openApiGenerate'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
