@@ -1,4 +1,1 @@
-# 4. 댓글(Comments) API 구현
-
-## 목표
-게시글에 댓글을 추가하고, 조회하고, 삭제하는 기능을 구현합니다.
+This issue has been completed and moved to the 'done' directory.

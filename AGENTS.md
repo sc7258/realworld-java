@@ -150,6 +150,46 @@ public class ProfilesController implements ProfileApi {
 
 이 프로세스를 통해 작업의 상태(`open`, `in-progress`, `done`)를 명확하게 추적하고, 성급한 구현을 방지합니다.
 
+### 6.1. 이슈 폴더 상태 변경 절차 (에이전트 제약사항)
+
+AI 에이전트는 파일 시스템에서 폴더를 직접 이동하거나 삭제하는 기능이 없습니다. 따라서 이슈 폴더의 상태를 변경(`in-progress` -> `done` 등)할 때는 다음의 **우회적인 절차**를 따릅니다.
+
+1.  **새 위치에 복사**:
+    -   먼저, 이동할 대상 폴더(예: `works/issues/done/06-tags`)를 새로 만듭니다.
+    -   원본 폴더(예: `works/issues/in-progress/06-tags`)에 있는 모든 파일의 내용을 하나씩 읽어, 새로운 대상 폴더에 동일한 이름의 파일로 다시 씁니다.
+
+2.  **원본 위치에 이동 경로 명시**:
+    -   복사가 완료되면, 원본 폴더에 있는 모든 파일의 내용을 **"This issue has been completed and moved to the 'done' directory."** 라는 메시지로 덮어씁니다.
+    -   이를 통해 원본 폴더는 '아카이브'되었음을 명시적으로 나타냅니다.
+
+이 절차는 물리적인 폴더 이동을 흉내 내는 것으로, 에이전트의 기능적 한계 내에서 작업 상태를 최대한 명확하게 반영하기 위한 것입니다.
+
+### 6.2. 작업 상태 변경 명확화 및 주의사항
+
+**가장 중요한 원칙: 작업은 반드시 `open` → `in-progress` → `done` 순서로 이동합니다.**
+
+이전 작업에서 `open` 상태의 이슈를 `done`으로 바로 이동 처리하는 실수가 발생했습니다. 이는 프로젝트의 작업 흐름을 심각하게 왜곡하므로 절대 반복해서는 안 됩니다.
+
+**상태 변경 시나리오별 정확한 절차:**
+
+1.  **`open` → `in-progress` (작업 시작)**
+    -   **상황**: 사용자가 `works/issues/open/XX-some-feature`에 대한 작업을 시작하라고 지시할 때.
+    -   **조치**:
+        -   `works/issues/in-progress/XX-some-feature` 폴더와 그 안의 파일들(`README.md` 등)을 생성합니다. (실제로는 파일 복사로 구현)
+        -   `works/issues/open/XX-some-feature` 폴더의 모든 파일 내용을 **"This issue has been moved to the 'in-progress' directory."** 로 덮어씁니다.
+    -   **주의**: `done` 디렉토리로 이동했다는 메시지를 절대 사용해서는 안 됩니다.
+
+2.  **`in-progress` → `done` (작업 완료)**
+    -   **상황**: `works/issues/in-progress/XX-some-feature`에 대한 모든 구현과 테스트가 완료되었을 때.
+    -   **조치**:
+        -   `works/issues/done/XX-some-feature` 폴더와 그 안의 파일들을 생성합니다. (실제로는 파일 복사로 구현)
+        -   `works/issues/in-progress/XX-some-feature` 폴더의 모든 파일 내용을 **"This issue has been completed and moved to the 'done' directory."** 로 덮어씁니다.
+
+**실수 사례 분석 (Case Study):**
+-   **문제**: `open` 상태의 여러 이슈 파일에 대해 "completed and moved to the 'done' directory"라는 메시지를 기록함.
+-   **원인**: `open` -> `in-progress` 단계를 건너뛰고, 작업 상태 흐름을 잘못 이해함.
+-   **교훈**: 상태 변경 요청을 받으면, 항상 현재 이슈가 어느 디렉토리(`open` 또는 `in-progress`)에 있는지 먼저 확인하고, 그에 맞는 다음 상태(`in-progress` 또는 `done`)로만 이동을 기록해야 합니다.
+
 ---
 
 ## 7. 통합 테스트 작성 특별 지침 (`@SpringBootTest`)

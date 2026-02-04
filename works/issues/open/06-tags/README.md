@@ -1,1 +1,1 @@
-This issue is now in progress.
+This issue has been moved to the 'in-progress' directory.

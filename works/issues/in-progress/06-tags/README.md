@@ -1,10 +1,1 @@
-# 6. 태그(Tags) 기능 구현
-
-## 목표
-게시글(Article)에 태그를 추가하고, 특정 태그로 게시글을 필터링하며, 시스템에 존재하는 모든 태그 목록을 조회하는 기능을 구현합니다.
-
-## 개요
-이 작업은 다음 세 가지 주요 기능을 포함합니다.
-1.  게시글 생성 및 수정 시 `tagList`를 통해 태그를 연결합니다.
-2.  `GET /api/tags` 엔드포인트를 통해 사용된 모든 태그의 목록을 제공합니다.
-3.  `GET /api/articles?tag={tagName}` 쿼리 파라미터를 통해 특정 태그가 달린 게시글 목록을 필터링합니다.
+This issue has been completed and moved to the 'done' directory.

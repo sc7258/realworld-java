@@ -75,7 +75,10 @@ public class ArticleService {
         if (articleUpdateData.getBody() != null) {
             article.setBody(articleUpdateData.getBody());
         }
-        // `tagList` is not part of UpdateArticle schema, so we don't update it here.
+        if (articleUpdateData.getTagList() != null) {
+            Set<Tag> tags = processTags(articleUpdateData.getTagList());
+            article.setTags(tags);
+        }
         Article updatedArticle = articleRepository.save(article);
         return new SingleArticleResponse().article(mapToArticleModel(updatedArticle, currentUser));
     }
