@@ -1,42 +1,56 @@
-# 요구사항 및 구현 항목
+# 요구사항: 댓글(Comments) API
 
-## 1. OpenAPI 명세 업데이트 (`openapi.yml`)
-- `Comment` 모델 스키마 정의
-- `NewCommentRequest` 요청 본문 스키마 정의
-- `CommentResponse` 응답 스키마 정의
-- `MultipleCommentsResponse` 응답 스키마 정의
-- Articles API (`/articles/{slug}/comments`)에 다음 엔드포인트 추가:
-    - `POST /api/articles/{slug}/comments`
-    - `GET /api/articles/{slug}/comments`
-    - `DELETE /api/articles/{slug}/comments/{id}`
+## 1. 데이터 모델 및 Repository
+- **Comment 엔티티 (`Comment.java`)**
+  - `id`: Primary Key (Long)
+  - `body`: 댓글 내용 (String, Not Null)
+  - `createdAt`: 생성 시각 (Instant, Not Null)
+  - `updatedAt`: 수정 시각 (Instant, Not Null)
+  - `author`: 작성자 (`User` 엔티티와 Many-to-One 관계)
+  - `article`: 댓글이 달린 게시글 (`Article` 엔티티와 Many-to-One 관계)
+- **Comment Repository (`CommentRepository.java`)**
+  - `JpaRepository`를 상속받는 인터페이스
+  - 게시글 ID로 댓글을 찾는 메소드 필요 (예: `findByArticleId`)
 
-## 2. 데이터베이스 모델링 (`entity` 패키지)
-- `Comment` 엔티티 클래스 생성 (`comments/entity/Comment.java`)
-    - `id`: `Long` (Primary Key)
-    - `body`: `String`
-    - `createdAt`, `updatedAt`: `Instant`
-    - `author`: `User` (Many-to-One 관계)
-    - `article`: `Article` (Many-to-One 관계)
-- `Article` 엔티티에 `comments` 리스트 추가 (One-to-Many 관계)
-- `User` 엔티티에 `comments` 리스트 추가 (One-to-Many 관계)
-- `CommentRepository` 인터페이스 생성 (`comments/CommentRepository.java`)
+## 2. OpenAPI 명세 (`openapi.yml`) 수정
+- **Components (Schemas, RequestBodies, Responses)**
+  - `Comment`: 댓글 단일 객체 모델 정의
+  - `NewCommentRequest`: 댓글 생성 요청 본문 정의 (`comment` 객체 포함, `body` 필드 가짐)
+  - `CommentResponse`: 단일 댓글 응답 정의 (`comment` 객체 포함)
+  - `MultipleCommentsResponse`: 여러 댓글 목록 응답 정의 (`comments` 배열 포함)
+- **Paths**
+  - `POST /api/articles/{slug}/comments`: 댓글 생성 API 경로 추가
+  - `GET /api/articles/{slug}/comments`: 댓글 목록 조회 API 경로 추가
+  - `DELETE /api/articles/{slug}/comments/{id}`: 댓글 삭제 API 경로 추가
 
-## 3. 비즈니스 로직 구현 (`service` 패키지)
-- `CommentService` 클래스 생성 (`comments/CommentService.java`)
-    - `addComment(slug, newComment, currentUser)`: 댓글 추가 로직
-    - `getCommentsBySlug(slug)`: 댓글 목록 조회 로직
-    - `deleteComment(slug, id, currentUser)`: 댓글 삭제 로직
-- `Comment` 엔티티와 `Comment` API 모델 간의 변환 로직 구현
+## 3. API 구현 (Controller, Service)
+- **`POST /api/articles/{slug}/comments` - 댓글 추가**
+  - **인증**: JWT 토큰 필수 (인증된 사용자만 댓글 작성 가능)
+  - **입력**:
+    - `slug`: 댓글을 달 게시글의 slug (경로 변수)
+    - `NewCommentRequest`: 댓글 내용 (`body`)
+  - **로직**:
+    1. `slug`로 `Article` 조회 (없으면 404 Not Found)
+    2. 인증된 `User` 정보 조회
+    3. `Comment` 엔티티 생성 및 저장
+  - **응답**: `CommentResponse` (생성된 댓글 정보)
 
-## 4. API 컨트롤러 구현 (`controller` 패키지)
-- `CommentsController` 클래스 생성 (`comments/CommentsController.java`)
-    - 생성된 `CommentsApi` 인터페이스를 구현
-    - `POST /api/articles/{slug}/comments`: `CommentService.addComment` 호출
-    - `GET /api/articles/{slug}/comments`: `CommentService.getCommentsBySlug` 호출
-    - `DELETE /api/articles/{slug}/comments/{id}`: `CommentService.deleteComment` 호출
-    - `SecurityContextHolder`를 사용하여 인증된 사용자 정보 조회
+- **`GET /api/articles/{slug}/comments` - 댓글 목록 조회**
+  - **인증**: 선택 사항 (인증/비인증 사용자 모두 조회 가능)
+  - **입력**: `slug` (경로 변수)
+  - **로직**:
+    1. `slug`로 `Article` 조회 (없으면 404 Not Found)
+    2. 해당 게시글에 달린 모든 댓글 조회
+    3. 각 댓글의 작성자 프로필 정보 포함
+  - **응답**: `MultipleCommentsResponse` (댓글 목록)
 
-## 5. 예외 처리
-- `ArticleNotFoundException` 처리
-- `CommentNotFoundException` 처리
-- 댓글 삭제 권한이 없는 경우 `ForbiddenException` 처리
+- **`DELETE /api/articles/{slug}/comments/{id}` - 댓글 삭제**
+  - **인증**: JWT 토큰 필수
+  - **입력**:
+    - `slug`: 게시글 slug (경로 변수)
+    - `id`: 삭제할 댓글의 ID (경로 변수)
+  - **로직**:
+    1. `id`로 `Comment` 조회 (없으면 404 Not Found)
+    2. 인증된 사용자가 댓글의 `author`인지 권한 확인 (아니면 403 Forbidden)
+    3. 댓글 삭제
+  - **응답**: `200 OK` (성공 시, 본문 없음)

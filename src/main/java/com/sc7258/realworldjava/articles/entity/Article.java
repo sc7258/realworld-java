@@ -59,4 +59,20 @@ public class Article {
         this.createdAt = Instant.now(); // 테스트 시 null 방지
         this.updatedAt = Instant.now(); // 테스트 시 null 방지
     }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
+    }
 }
