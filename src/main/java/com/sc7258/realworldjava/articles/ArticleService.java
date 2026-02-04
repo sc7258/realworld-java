@@ -1,6 +1,7 @@
 package com.sc7258.realworldjava.articles;
 
 import com.sc7258.realworldjava.articles.entity.Article;
+import com.sc7258.realworldjava.articles.entity.Favorite;
 import com.sc7258.realworldjava.exception.ArticleNotFoundException;
 import com.sc7258.realworldjava.exception.ForbiddenException;
 import com.sc7258.realworldjava.model.*;
@@ -30,7 +31,35 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final FavoriteRepository favoriteRepository;
 
+    @Transactional
+    public SingleArticleResponse favoriteArticle(String slug, User currentUser) {
+        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
+        
+        favoriteRepository.findByUserAndArticle(currentUser, article).orElseGet(() -> {
+            Favorite newFavorite = new Favorite(currentUser, article);
+            favoriteRepository.save(newFavorite);
+            article.getFavoritedBy().add(newFavorite); // In-memory 상태 동기화
+            return newFavorite;
+        });
+
+        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
+    }
+
+    @Transactional
+    public SingleArticleResponse unfavoriteArticle(String slug, User currentUser) {
+        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
+        
+        favoriteRepository.findByUserAndArticle(currentUser, article).ifPresent(favorite -> {
+            favoriteRepository.delete(favorite);
+            article.getFavoritedBy().remove(favorite); // In-memory 상태 동기화
+        });
+
+        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
+    }
+
+    // ... other methods ...
     @Transactional
     public SingleArticleResponse createArticle(NewArticleRequest request, User author) {
         Article article = new Article(toSlug(request.getArticle().getTitle()), request.getArticle().getTitle(), request.getArticle().getDescription(), request.getArticle().getBody(), author);
@@ -43,7 +72,7 @@ public class ArticleService {
         Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
         return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
     }
-
+    
     @Transactional
     public SingleArticleResponse updateArticle(String slug, UpdateArticleRequest request, User currentUser) {
         Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
@@ -129,8 +158,8 @@ public class ArticleService {
         articleModel.setTagList(Collections.emptyList());
         articleModel.setCreatedAt(article.getCreatedAt().atOffset(OffsetDateTime.now().getOffset()));
         articleModel.setUpdatedAt(article.getUpdatedAt().atOffset(OffsetDateTime.now().getOffset()));
-        articleModel.setFavorited(false);
-        articleModel.setFavoritesCount(0);
+        articleModel.setFavorited(article.isFavoritedBy(currentUser));
+        articleModel.setFavoritesCount(article.getFavoritesCount());
         Profile authorProfile = new Profile();
         authorProfile.setUsername(article.getAuthor().getUsername());
         authorProfile.setBio(article.getAuthor().getBio());
@@ -145,12 +174,11 @@ public class ArticleService {
         innerArticle.setSlug(article.getSlug());
         innerArticle.setTitle(article.getTitle());
         innerArticle.setDescription(article.getDescription());
-        // innerArticle.setBody(article.getBody()); // This line caused the error and is now removed.
         innerArticle.setTagList(Collections.emptyList());
         innerArticle.setCreatedAt(article.getCreatedAt().atOffset(OffsetDateTime.now().getOffset()));
         innerArticle.setUpdatedAt(article.getUpdatedAt().atOffset(OffsetDateTime.now().getOffset()));
-        innerArticle.setFavorited(false);
-        innerArticle.setFavoritesCount(0);
+        innerArticle.setFavorited(article.isFavoritedBy(currentUser));
+        innerArticle.setFavoritesCount(article.getFavoritesCount());
         Profile authorProfile = new Profile();
         authorProfile.setUsername(article.getAuthor().getUsername());
         authorProfile.setBio(article.getAuthor().getBio());

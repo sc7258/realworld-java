@@ -29,8 +29,7 @@ public class ArticlesController implements ArticlesApi {
     @Override
     public ResponseEntity<SingleArticleResponse> createArticle(@Valid NewArticleRequest newArticleRequest) {
         User currentUser = getRequiredCurrentUser();
-        SingleArticleResponse articleResponse = articleService.createArticle(newArticleRequest, currentUser);
-        return new ResponseEntity<>(articleResponse, HttpStatus.CREATED);
+        return new ResponseEntity<>(articleService.createArticle(newArticleRequest, currentUser), HttpStatus.CREATED);
     }
 
     @Override
@@ -43,8 +42,7 @@ public class ArticlesController implements ArticlesApi {
     @Override
     public ResponseEntity<SingleArticleResponse> getArticle(String slug) {
         User currentUser = getOptionalCurrentUser().orElse(null);
-        SingleArticleResponse articleResponse = articleService.getArticle(slug, currentUser);
-        return ResponseEntity.ok(articleResponse);
+        return ResponseEntity.ok(articleService.getArticle(slug, currentUser));
     }
 
     @Override
@@ -52,8 +50,7 @@ public class ArticlesController implements ArticlesApi {
         User currentUser = getOptionalCurrentUser().orElse(null);
         int realOffset = (offset != null) ? offset : 0;
         int realLimit = (limit != null) ? limit : 20;
-        MultipleArticlesResponse response = articleService.getArticles(currentUser, tag, author, favorited, realOffset, realLimit);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(articleService.getArticles(currentUser, tag, author, favorited, realOffset, realLimit));
     }
 
     @Override
@@ -61,15 +58,13 @@ public class ArticlesController implements ArticlesApi {
         User currentUser = getRequiredCurrentUser();
         int realOffset = (offset != null) ? offset : 0;
         int realLimit = (limit != null) ? limit : 20;
-        MultipleArticlesResponse response = articleService.getArticlesFeed(currentUser, realOffset, realLimit);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(articleService.getArticlesFeed(currentUser, realOffset, realLimit));
     }
 
     @Override
     public ResponseEntity<SingleArticleResponse> updateArticle(String slug, @Valid UpdateArticleRequest updateArticleRequest) {
         User currentUser = getRequiredCurrentUser();
-        SingleArticleResponse articleResponse = articleService.updateArticle(slug, updateArticleRequest, currentUser);
-        return ResponseEntity.ok(articleResponse);
+        return ResponseEntity.ok(articleService.updateArticle(slug, updateArticleRequest, currentUser));
     }
 
     private User getRequiredCurrentUser() {

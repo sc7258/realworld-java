@@ -31,7 +31,23 @@
 
 ---
 
-## 2. OpenAPI Generator 연동 특별 지침
+## 2. 컨트롤러와 테스트의 구조적 일관성
+
+**모든 컨트롤러는 자신만의 테스트 클래스를 가져야 합니다.** 이는 코드와 테스트의 구조적 일관성을 유지하고, 책임 소재를 명확히 하기 위함입니다.
+
+- **1 컨트롤러 = 1 테스트 클래스**:
+    - `ArticlesController`는 `ArticlesControllerTest`가 대응합니다.
+    - `FavoritesController`를 새로 만들었다면, 반드시 `FavoritesControllerTest`도 함께 생성해야 합니다.
+
+- **리팩토링 시 테스트도 함께 이전**:
+    - 특정 기능(예: '좋아요')을 `ArticlesController`에서 `FavoritesController`로 이전하는 경우, 관련 테스트 코드 또한 `ArticlesControllerTest`에서 `FavoritesControllerTest`로 **반드시 함께 이전**해야 합니다.
+    - 리팩토링 후, 기존 테스트 클래스(`ArticlesControllerTest`)에 더 이상 관련 없는 테스트 코드가 남아있어서는 안 됩니다.
+
+- **항상 확인**: 새로운 컨트롤러를 추가하거나 기존 컨트롤러의 책임을 변경할 때, `src/test/java` 아래의 테스트 구조가 `src/main/java`의 구조와 일치하는지 항상 확인하고 점검해야 합니다.
+
+---
+
+## 3. OpenAPI Generator 연동 특별 지침
 
 이 프로젝트는 **OpenAPI Generator를 활용한 계약 우선 개발**을 채택하고 있습니다. 이와 관련된 문제를 해결할 때는 다음 지침을 반드시 따릅니다.
 
@@ -42,7 +58,7 @@
     - `build/generated/openapi` 디렉터리를 탐색하여 **실제로 생성된 파일의 정확한 이름과 패키지 경로**를 확인하는 것이 최우선입니다.
 
 - **OpenAPI Generator의 동작 방식 이해**:
-    - **요청/응답 클래스 이름**: `openapi.yml`의 `components` 섹션(`requestBodies`, `responses`)에 정의된 이름을 그대로 사용합니다. (예: `NewUserRequest` -> `NewUserRequest.java`, `UserResponse` -> `UserResponse.java`)
+    - **`tags` 기준 인터페이스 생성**: OpenAPI Generator는 `openapi.yml`의 `paths` 아래 각 오퍼레이션에 명시된 `tags`를 기준으로 API 인터페이스 파일을 생성합니다. (예: `tags: [Articles]` -> `ArticlesApi.java`, `tags: [Favorites]` -> `FavoritesApi.java`)
     - **이름 충돌 문제**: API 모델(DTO)과 JPA 엔티티의 이름이 같을 경우(예: `User`), 패키지를 분리하여(`users/model`과 `users/entity`) 충돌을 해결하는 것이 이 프로젝트의 핵심 아키텍처입니다. 이 구조를 절대 임의로 변경해서는 안 됩니다.
 
 - **`build.gradle`의 핵심 옵션을 존중**:
@@ -51,7 +67,7 @@
 
 ---
 
-## 3. 컨트롤러 구현 특별 지침 (Controller Implementation Guidelines)
+## 4. 컨트롤러 구현 특별 지침 (Controller Implementation Guidelines)
 
 ### 문제 상황: API 인터페이스와 인증 정보의 충돌
 
@@ -103,7 +119,7 @@ public class ProfilesController implements ProfileApi {
 
 ---
 
-## 4. 온보딩 프로세스 (Onboarding Process)
+## 5. 온보딩 프로세스 (Onboarding Process)
 
 새로운 채팅 세션이 시작될 때, AI 에이전트는 프로젝트의 맥락을 파악하기 위해 다음 단계를 반드시 수행해야 합니다.
 
@@ -113,7 +129,7 @@ public class ProfilesController implements ProfileApi {
 
 ---
 
-## 5. 작업 관리 프로세스 (Issue Management Process)
+## 6. 작업 관리 프로세스 (Issue Management Process)
 
 이 프로젝트는 `works/issues` 디렉토리를 통해 작업을 관리합니다. 모든 작업은 다음의 명확한 절차를 따라야 합니다.
 
@@ -136,7 +152,7 @@ public class ProfilesController implements ProfileApi {
 
 ---
 
-## 6. 통합 테스트 작성 특별 지침 (`@SpringBootTest`)
+## 7. 통합 테스트 작성 특별 지침 (`@SpringBootTest`)
 
 `@SpringBootTest`를 사용하여 컨트롤러 통합 테스트를 작성할 때, 반복적인 오류를 피하고 안정적인 테스트를 구축하기 위해 다음 지침을 **반드시** 따릅니다.
 

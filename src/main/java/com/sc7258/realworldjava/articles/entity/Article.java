@@ -11,7 +11,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -42,6 +44,9 @@ public class Article {
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
+    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Favorite> favoritedBy = new HashSet<>();
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -56,23 +61,21 @@ public class Article {
         this.description = description;
         this.body = body;
         this.author = author;
-        this.createdAt = Instant.now(); // 테스트 시 null 방지
-        this.updatedAt = Instant.now(); // 테스트 시 null 방지
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public void setSlug(String slug) {
-        this.slug = slug;
+    public void setSlug(String slug) { this.slug = slug; }
+    public void setTitle(String title) { this.title = title; }
+    public void setDescription(String description) { this.description = description; }
+    public void setBody(String body) { this.body = body; }
+
+    public int getFavoritesCount() {
+        return favoritedBy.size();
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setBody(String body) {
-        this.body = body;
+    public boolean isFavoritedBy(User user) {
+        if (user == null) return false;
+        return favoritedBy.stream().anyMatch(f -> f.getUser().equals(user));
     }
 }

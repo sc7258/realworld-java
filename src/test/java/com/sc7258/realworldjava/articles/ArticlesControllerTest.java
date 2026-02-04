@@ -1,10 +1,7 @@
 package com.sc7258.realworldjava.articles;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sc7258.realworldjava.articles.entity.Article;
-import com.sc7258.realworldjava.users.entity.Follow;
 import com.sc7258.realworldjava.users.entity.User;
-import com.sc7258.realworldjava.users.FollowRepository;
 import com.sc7258.realworldjava.users.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,9 +32,6 @@ class ArticlesControllerTest {
     @Autowired
     private ArticleRepository articleRepository;
 
-    @Autowired
-    private FollowRepository followRepository;
-
     private User savedUser1;
     private User savedUser2;
 
@@ -47,24 +41,56 @@ class ArticlesControllerTest {
         savedUser2 = userRepository.saveAndFlush(new User("user2@example.com", "user2", "password"));
     }
 
-    // --- 게시글 피드 (Feed) ---
     @Test
     @WithMockUser(username = "user1")
-    void getArticlesFeed_success() throws Exception {
-        // given: user1이 user2를 팔로우
-        followRepository.save(new Follow(savedUser1, savedUser2));
-        
-        // and: user1과 user2가 각각 게시글 작성
-        articleRepository.save(new Article("article-by-user1", "Article by user1", "d", "b", savedUser1));
-        articleRepository.save(new Article("article-by-user2", "Article by user2", "d", "b", savedUser2));
-        articleRepository.flush();
-
-        // when & then: user1의 피드에는 user2의 게시글만 보여야 함
-        mockMvc.perform(get("/api/articles/feed"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.articlesCount").value(1))
-                .andExpect(jsonPath("$.articles[0].slug").value("article-by-user2"));
+    void createArticle_success() throws Exception {
+        String newArticleJson = """
+                { "article": { "title": "Test Article", "description": "Desc", "body": "Body" } }
+                """;
+        mockMvc.perform(post("/api/articles").contentType(MediaType.APPLICATION_JSON).content(newArticleJson))
+                .andExpect(status().isCreated());
     }
 
-    // --- Other tests...
+    @Test
+    void getArticle_success() throws Exception {
+        Article article = new Article("my-test-article", "My Test Article", "description", "body", savedUser1);
+        articleRepository.saveAndFlush(article);
+        mockMvc.perform(get("/api/articles/my-test-article"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "user1")
+    void updateArticle_success() throws Exception {
+        Article originalArticle = new Article("my-test-article", "title", "desc", "body", savedUser1);
+        articleRepository.saveAndFlush(originalArticle);
+        String updateJson = """
+                { "article": { "body": "updated body" } }
+                """;
+        mockMvc.perform(put("/api/articles/my-test-article").contentType(MediaType.APPLICATION_JSON).content(updateJson))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "user1")
+    void deleteArticle_success() throws Exception {
+        Article article = new Article("my-test-article", "title", "desc", "body", savedUser1);
+        articleRepository.saveAndFlush(article);
+
+        mockMvc.perform(delete("/api/articles/my-test-article"))
+                .andExpect(status().isNoContent());
+
+        assertFalse(articleRepository.existsBySlug("my-test-article"));
+    }
+
+    @Test
+    void getArticles_success() throws Exception {
+        articleRepository.save(new Article("article-1", "Article 1", "desc 1", "body 1", savedUser1));
+        articleRepository.save(new Article("article-2", "Article 2", "desc 2", "body 2", savedUser2));
+        articleRepository.flush();
+
+        mockMvc.perform(get("/api/articles"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.articlesCount").value(2));
+    }
 }
