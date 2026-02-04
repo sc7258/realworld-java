@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Newman report
+newman-report.xml
