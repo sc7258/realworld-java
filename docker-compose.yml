@@ -5,8 +5,8 @@ services:
     container_name: realworld-db
     restart: always
     environment:
-      POSTGRES_USER: your_user
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
       POSTGRES_DB: realworld
     ports:
       - "5432:5432"

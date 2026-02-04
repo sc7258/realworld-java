@@ -24,14 +24,19 @@ realworld로 앱을 빌드하는 방법에 대한 자세한 내용은 [Realworld
 
 ## 실행 방법
 
-이것은 표준 Spring Boot 애플리케이션입니다. IDE 또는 명령줄에서 실행할 수 있습니다.
+이 애플리케이션은 두 가지 방식으로 실행할 수 있습니다:
+1.  **기본 (개발용)**: H2 인메모리 데이터베이스를 사용합니다.
+2.  **Docker**: Docker Compose를 사용하여 PostgreSQL 데이터베이스와 함께 실행합니다.
 
 ### 전제 조건
 
 - Java 17 이상
 - Gradle
+- Docker (PostgreSQL 실행 시 필요)
 
-### 애플리케이션 실행
+### 방법 1: 기본 실행 (H2 인메모리 DB)
+
+별도 설정 없이 바로 애플리케이션을 실행하면, 개발용 H2 인메모리 데이터베이스를 사용하여 시작됩니다.
 
 1.  저장소 복제:
     ```bash
@@ -50,6 +55,38 @@ realworld로 앱을 빌드하는 방법에 대한 자세한 내용은 [Realworld
       ```
 
 애플리케이션은 `http://localhost:8080`에서 시작됩니다.
+
+### 방법 2: PostgreSQL과 함께 실행 (Docker)
+
+Docker를 사용하여 영속적인 PostgreSQL 데이터베이스와 함께 애플리케이션을 실행할 수 있습니다.
+
+1.  **PostgreSQL 데이터베이스 시작**:
+    프로젝트 루트 디렉토리에서 다음 명령을 실행하여 Docker 컨테이너로 데이터베이스를 시작합니다.
+    ```bash
+    docker-compose up -d
+    ```
+    > **참고**: `docker-compose.yml`에 정의된 사용자 정보(`devuser`/`devpass`)가 `application-docker.properties`의 정보와 일치해야 합니다.
+
+2.  **`docker` 프로필로 애플리케이션 실행**:
+    데이터베이스가 실행되면, 다음 중 한 가지 방법으로 `docker` 프로필을 활성화하여 애플리케이션을 시작합니다.
+
+    - **터미널에서 실행 (Gradle 사용)**:
+      - **Linux/macOS:**
+        ```bash
+        ./gradlew bootRun --args='--spring.profiles.active=docker'
+        ```
+      - **Windows:**
+        ```bash
+        .\\gradlew.bat bootRun --args='--spring.profiles.active=docker'
+        ```
+
+    - **IntelliJ IDEA에서 실행**:
+      1.  `Run/Debug Configurations` (실행/디버그 구성) 편집창을 엽니다.
+      2.  현재 Spring Boot 애플리케이션(`RealworldJavaApplication`)을 선택합니다.
+      3.  `Configuration` 탭의 **`Active profiles`** 필드에 **`docker`**를 입력합니다.
+      4.  설정을 저장하고 실행합니다.
+
+이제 애플리케이션은 `http://localhost:8080`에서 시작되며, Docker의 PostgreSQL 데이터베이스에 연결됩니다.
 
 ## API 테스트
 
