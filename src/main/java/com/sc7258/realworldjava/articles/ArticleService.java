@@ -2,12 +2,14 @@ package com.sc7258.realworldjava.articles;
 
 import com.sc7258.realworldjava.articles.entity.Article;
 import com.sc7258.realworldjava.articles.entity.Favorite;
+import com.sc7258.realworldjava.articles.entity.Tag;
 import com.sc7258.realworldjava.exception.ArticleNotFoundException;
 import com.sc7258.realworldjava.exception.ForbiddenException;
 import com.sc7258.realworldjava.model.*;
 import com.sc7258.realworldjava.users.FollowRepository;
 import com.sc7258.realworldjava.users.entity.User;
 import com.sc7258.realworldjava.users.UserRepository;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,12 +18,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,37 +32,22 @@ public class ArticleService {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final FavoriteRepository favoriteRepository;
+    private final TagRepository tagRepository;
 
-    @Transactional
-    public SingleArticleResponse favoriteArticle(String slug, User currentUser) {
-        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
-        
-        favoriteRepository.findByUserAndArticle(currentUser, article).orElseGet(() -> {
-            Favorite newFavorite = new Favorite(currentUser, article);
-            favoriteRepository.save(newFavorite);
-            article.getFavoritedBy().add(newFavorite); // In-memory 상태 동기화
-            return newFavorite;
-        });
-
-        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
-    }
-
-    @Transactional
-    public SingleArticleResponse unfavoriteArticle(String slug, User currentUser) {
-        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
-        
-        favoriteRepository.findByUserAndArticle(currentUser, article).ifPresent(favorite -> {
-            favoriteRepository.delete(favorite);
-            article.getFavoritedBy().remove(favorite); // In-memory 상태 동기화
-        });
-
-        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
-    }
-
-    // ... other methods ...
     @Transactional
     public SingleArticleResponse createArticle(NewArticleRequest request, User author) {
-        Article article = new Article(toSlug(request.getArticle().getTitle()), request.getArticle().getTitle(), request.getArticle().getDescription(), request.getArticle().getBody(), author);
+        var articleData = request.getArticle();
+        Set<Tag> tags = processTags(articleData.getTagList());
+
+        Article article = new Article(
+                toSlug(articleData.getTitle()),
+                articleData.getTitle(),
+                articleData.getDescription(),
+                articleData.getBody(),
+                author
+        );
+        article.setTags(tags);
+
         Article savedArticle = articleRepository.save(article);
         return new SingleArticleResponse().article(mapToArticleModel(savedArticle, author));
     }
@@ -72,7 +57,7 @@ public class ArticleService {
         Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
         return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
     }
-    
+
     @Transactional
     public SingleArticleResponse updateArticle(String slug, UpdateArticleRequest request, User currentUser) {
         Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
@@ -90,6 +75,7 @@ public class ArticleService {
         if (articleUpdateData.getBody() != null) {
             article.setBody(articleUpdateData.getBody());
         }
+        // `tagList` is not part of UpdateArticle schema, so we don't update it here.
         Article updatedArticle = articleRepository.save(article);
         return new SingleArticleResponse().article(mapToArticleModel(updatedArticle, currentUser));
     }
@@ -107,16 +93,24 @@ public class ArticleService {
     public MultipleArticlesResponse getArticles(User currentUser, String tag, String author, String favorited, int offset, int limit) {
         Specification<Article> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (author != null) {
+
+            if (StringUtils.hasText(author)) {
                 userRepository.findByUsername(author).ifPresent(user ->
                         predicates.add(criteriaBuilder.equal(root.get("author"), user))
                 );
             }
+
+            if (StringUtils.hasText(tag)) {
+                Join<Article, Tag> tagJoin = root.join("tags");
+                predicates.add(criteriaBuilder.equal(tagJoin.get("name"), tag));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+
         PageRequest pageable = PageRequest.of(offset / limit, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Article> articlePage = articleRepository.findAll(spec, pageable);
-        
+
         List<MultipleArticlesResponseArticlesInner> innerArticles = articlePage.getContent().stream()
                 .map(article -> mapToArticlesInner(article, currentUser))
                 .collect(Collectors.toList());
@@ -144,6 +138,46 @@ public class ArticleService {
 
         return new MultipleArticlesResponse().articles(innerArticles).articlesCount((int) articlePage.getTotalElements());
     }
+    
+    @Transactional
+    public SingleArticleResponse favoriteArticle(String slug, User currentUser) {
+        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
+        favoriteRepository.findByUserAndArticle(currentUser, article).orElseGet(() -> {
+            Favorite newFavorite = new Favorite(currentUser, article);
+            favoriteRepository.save(newFavorite);
+            article.getFavoritedBy().add(newFavorite);
+            return newFavorite;
+        });
+        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
+    }
+
+    @Transactional
+    public SingleArticleResponse unfavoriteArticle(String slug, User currentUser) {
+        Article article = articleRepository.findBySlug(slug).orElseThrow(() -> new ArticleNotFoundException(slug));
+        favoriteRepository.findByUserAndArticle(currentUser, article).ifPresent(favorite -> {
+            favoriteRepository.delete(favorite);
+            article.getFavoritedBy().remove(favorite);
+        });
+        return new SingleArticleResponse().article(mapToArticleModel(article, currentUser));
+    }
+
+    private Set<Tag> processTags(List<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Tag> existingTags = tagRepository.findByNameIn(tagNames);
+        Set<String> existingTagNames = existingTags.stream().map(Tag::getName).collect(Collectors.toSet());
+        
+        Set<Tag> newTags = tagNames.stream()
+                .filter(name -> !existingTagNames.contains(name))
+                .map(Tag::new)
+                .collect(Collectors.toSet());
+        
+        tagRepository.saveAll(newTags);
+        
+        existingTags.addAll(newTags);
+        return existingTags;
+    }
 
     private String toSlug(String title) {
         return title.toLowerCase().replaceAll("[\\&|\\/|\\s|\\,]", "-");
@@ -155,7 +189,7 @@ public class ArticleService {
         articleModel.setTitle(article.getTitle());
         articleModel.setDescription(article.getDescription());
         articleModel.setBody(article.getBody());
-        articleModel.setTagList(Collections.emptyList());
+        articleModel.setTagList(article.getTags().stream().map(Tag::getName).collect(Collectors.toList()));
         articleModel.setCreatedAt(article.getCreatedAt().atOffset(OffsetDateTime.now().getOffset()));
         articleModel.setUpdatedAt(article.getUpdatedAt().atOffset(OffsetDateTime.now().getOffset()));
         articleModel.setFavorited(article.isFavoritedBy(currentUser));
@@ -174,7 +208,7 @@ public class ArticleService {
         innerArticle.setSlug(article.getSlug());
         innerArticle.setTitle(article.getTitle());
         innerArticle.setDescription(article.getDescription());
-        innerArticle.setTagList(Collections.emptyList());
+        innerArticle.setTagList(article.getTags().stream().map(Tag::getName).collect(Collectors.toList()));
         innerArticle.setCreatedAt(article.getCreatedAt().atOffset(OffsetDateTime.now().getOffset()));
         innerArticle.setUpdatedAt(article.getUpdatedAt().atOffset(OffsetDateTime.now().getOffset()));
         innerArticle.setFavorited(article.isFavoritedBy(currentUser));

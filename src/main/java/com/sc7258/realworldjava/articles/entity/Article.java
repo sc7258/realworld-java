@@ -47,6 +47,12 @@ public class Article {
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Favorite> favoritedBy = new HashSet<>();
 
+    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(name = "article_tags",
+            joinColumns = @JoinColumn(name = "article_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    private Set<Tag> tags = new HashSet<>();
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -69,6 +75,7 @@ public class Article {
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setBody(String body) { this.body = body; }
+    public void setTags(Set<Tag> tags) { this.tags = tags; }
 
     public int getFavoritesCount() {
         return favoritedBy.size();
