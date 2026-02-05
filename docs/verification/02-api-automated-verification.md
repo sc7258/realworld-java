@@ -6,7 +6,7 @@
 
 ## 검증 목표
 
--   우리 애플리케이션이 Realworld API 명세의 모든 요구사항을 충족하는지 확인한다.
+-   우리 애플리케케이션이 Realworld API 명세의 모든 요구사항을 충족하는지 확인한다.
 -   수동 테스트 없이, 스크립트 실행 한 번으로 모든 API의 동작을 종합적으로 검증한다.
 
 ## 전제 조건
@@ -14,6 +14,7 @@
 -   **Node.js와 npm**이 설치되어 있어야 합니다.
 -   **Newman**이 npm을 통해 전역으로 설치되어 있어야 합니다. (최초 1회)
 -   검증하려는 **Spring Boot 애플리케이션이 실행 중**이어야 합니다.
+-   **Git Bash** 또는 이와 동등한 Unix 계열 쉘 환경 (예: WSL)
 
 ## 검증 절차
 
@@ -27,30 +28,24 @@ npm install -g newman
 
 ### 2단계: 검증할 애플리케이션 실행
 
-API 테스트를 수행하기 전에, 검증 대상인 Spring Boot 애플리케이션이 실행되고 있어야 합니다. 예를 들어, `docker` 프로필로 애플리케이션을 실행합니다.
+API 테스트를 수행하기 전에, 검증 대상인 Spring Boot 애플리케이션이 실행되고 있어야 합니다.
 
 ```bash
-# 예시: Windows에서 docker 프로필로 실행
-.\\gradlew.bat bootRun --args='--spring.profiles.active=docker'
+# 예시: Gradle 래퍼로 'docker' 프로필을 활성화하여 실행
+./gradlew bootRun --args='--spring.profiles.active=docker'
 ```
 
 ### 3단계: API 자동 검증 스크립트 실행
 
-애플리케이션이 실행 중인 상태에서, **새로운 터미널**을 열어 프로젝트 루트 디렉토리의 `scripts` 폴더에 있는 자동 검증 스크립트를 실행합니다.
+애플리케이션이 실행 중인 상태에서, **새로운 터미널**을 열어 프로젝트 루트 디렉토리의 `openapi` 폴더에 있는 자동 검증 스크립트를 실행합니다.
 
--   **Windows:**
-    ```bash
-    scripts\\run-api-tests.bat
-    ```
+```bash
+# 1. 스크립트에 실행 권한 부여 (최초 1회)
+chmod +x openapi/run-api-tests.sh
 
--   **Linux/macOS:**
-    ```bash
-    # 실행 권한 부여 (최초 1회)
-    chmod +x scripts/run-api-tests.sh
-
-    # 테스트 실행
-    ./scripts/run-api-tests.sh
-    ```
+# 2. 테스트 실행
+./openapi/run-api-tests.sh
+```
 
 ### 4단계: 결과 확인
 
